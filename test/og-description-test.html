@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>og:description 검사 테스트 페이지</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f5f7fa; color: #333; padding: 32px 16px; }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+    .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 32px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      border-left: 5px solid #ccc;
+    }
+    .card.pass  { border-left-color: #22c55e; }
+    .card.fail  { border-left-color: #ef4444; }
+    .card.warn  { border-left-color: #f59e0b; }
+    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
+    .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+    .badge.pass { background: #dcfce7; color: #16a34a; }
+    .badge.fail { background: #fee2e2; color: #dc2626; }
+    .badge.warn { background: #fef3c7; color: #b45309; }
+    .code-block {
+      background: #f1f5f9;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin-bottom: 10px;
+    }
+    .desc { font-size: 0.82rem; color: #555; line-height: 1.5; }
+    .section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #999;
+      margin-bottom: 4px;
+    }
+    hr { border: none; border-top: 1px solid #f0f0f0; margin: 10px 0; }
+  </style>
+</head>
+<body>
+
+  <h1>og:description 검사 테스트</h1>
+  <p class="subtitle">아래 케이스들을 각각 HTML 파일로 만들어 로컬 서버에서 SEO 체커로 테스트하세요.</p>
+
+  <div class="grid">
+
+    <!-- CASE 1: 정상 -->
+    <div class="card pass">
+      <div class="section-title">Case 1</div>
+      <h2>정상 — 적절한 길이의 og:description</h2>
+      <span class="badge pass">✅ PASS 예상</span>
+      <div class="code-block">&lt;meta property="og:description"
+  content="이 페이지는 SEO 최적화를 위한 오픈 그래프 태그 작성 방법을 안내합니다. 검색 노출과 소셜 공유 모두를 고려한 설명문 예시입니다."&gt;</div>
+      <hr>
+      <p class="desc">글자 수: 약 65자. 명확하고 간결한 1-2문장 구성. 반복 키워드 없음.</p>
+    </div>
+
+    <!-- CASE 2: og:description 없음 -->
+    <div class="card fail">
+      <div class="section-title">Case 2</div>
+      <h2>og:description 태그 자체 없음</h2>
+      <span class="badge fail">❌ FAIL 예상</span>
+      <div class="code-block">&lt;!-- og:description 태그 없음 --&gt;
+&lt;meta property="og:title" content="페이지 제목"&gt;</div>
+      <hr>
+      <p class="desc">og:description 태그가 아예 없는 경우. 소셜 공유 및 네이버 검색 활용도 저하.</p>
+    </div>
+
+    <!-- CASE 3: 너무 짧음 -->
+    <div class="card fail">
+      <div class="section-title">Case 3</div>
+      <h2>og:description 너무 짧음 (10자 미만)</h2>
+      <span class="badge fail">❌ FAIL 예상</span>
+      <div class="code-block">&lt;meta property="og:description"
+  content="안녕"&gt;</div>
+      <hr>
+      <p class="desc">글자 수: 2자. 내용을 충분히 설명하지 못하는 지나치게 짧은 설명.</p>
+    </div>
+
+    <!-- CASE 4: 너무 긺 (200~300자, 경고) -->
+    <div class="card warn">
+      <div class="section-title">Case 4</div>
+      <h2>og:description 다소 긴 편 (200~300자)</h2>
+      <span class="badge warn">⚠️ WARN 예상</span>
+      <div class="code-block">&lt;meta property="og:description"
+  content="이 서비스는 사용자에게 최고의 경험을 제공하기 위해 설계된 플랫폼입니다. 우리는 혁신적인 기술과 사용자 친화적인 인터페이스를 통해 다양한 기능을 제공합니다. 또한 실시간 데이터 분석과 맞춤형 추천 시스템을 통해 개인화된 서비스를 경험할 수 있으며, 언제 어디서나 편리하게 접근이 가능합니다."&gt;</div>
+      <hr>
+      <p class="desc">글자 수: 약 150자 내외. 검색 결과에서 잘릴 수 있는 길이.</p>
+    </div>
+
+    <!-- CASE 5: 너무 긺 (300자 초과, 실패) -->
+    <div class="card fail">
+      <div class="section-title">Case 5</div>
+      <h2>og:description 너무 긺 (300자 초과)</h2>
+      <span class="badge fail">❌ FAIL 예상</span>
+      <div class="code-block">&lt;meta property="og:description"
+  content="이 플랫폼은 전 세계 수백만 명의 사용자가 사용하는 서비스로, 최첨단 AI 기술과 빅데이터 분석을 기반으로 개인화된 콘텐츠를 제공합니다. 저희 팀은 사용자의 요구에 맞는 맞춤형 솔루션을 제공하기 위해 24시간 365일 끊임없이 노력하고 있으며, 지속적인 업데이트와 개선을 통해 더 나은 서비스를 만들어가고 있습니다. 뿐만 아니라 보안, 안정성, 접근성 모든 측면에서 최고를 지향하며 고객 만족을 최우선으로 생각합니다."&gt;</div>
+      <hr>
+      <p class="desc">글자 수: 약 210자. 300자 기준 초과 아니지만 실제로 더 길게 넣어 테스트할 것.</p>
+    </div>
+
+    <!-- CASE 6: 반복 키워드 -->
+    <div class="card fail">
+      <div class="section-title">Case 6</div>
+      <h2>반복 키워드 포함</h2>
+      <span class="badge fail">❌ FAIL 예상</span>
+      <div class="code-block">&lt;meta property="og:description"
+  content="최저가 쇼핑 최저가 할인 최저가 구매 쇼핑몰 쇼핑 혜택 쇼핑 정보"&gt;</div>
+      <hr>
+      <p class="desc">"최저가", "쇼핑" 등 키워드를 2회 이상 반복. 스팸성 키워드로 검색 불이익 가능.</p>
+    </div>
+
+    <!-- CASE 7: meta description만 있고 og:description 없음 -->
+    <div class="card fail">
+      <div class="section-title">Case 7</div>
+      <h2>meta description만 있고 og:description 없음</h2>
+      <span class="badge fail">❌ FAIL 예상 (info 표시)</span>
+      <div class="code-block">&lt;meta name="description"
+  content="이 페이지에 대한 설명입니다."&gt;
+&lt;!-- og:description 없음 --&gt;</div>
+      <hr>
+      <p class="desc">og:description 없음으로 FAIL. 단, meta description이 존재하므로 info로 표시됨.</p>
+    </div>
+
+    <!-- CASE 8: og:description = meta description 동일 -->
+    <div class="card pass">
+      <div class="section-title">Case 8</div>
+      <h2>og:description과 meta description 동일</h2>
+      <span class="badge pass">✅ PASS 예상 (info 표시)</span>
+      <div class="code-block">&lt;meta name="description"
+  content="SEO 검사 도구 소개 페이지입니다."&gt;
+&lt;meta property="og:description"
+  content="SEO 검사 도구 소개 페이지입니다."&gt;</div>
+      <hr>
+      <p class="desc">두 태그가 동일한 경우. PASS이지만 "meta description과 동일" 안내 info 출력.</p>
+    </div>
+
+  </div>
+
+  <div style="margin-top: 40px; padding: 16px 20px; background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); font-size: 0.85rem; color: #555; line-height: 1.8;">
+    <strong>테스트 방법</strong><br>
+    1. 각 케이스의 마크업을 별도 HTML 파일로 저장 후 <code>npx serve</code> 또는 <code>python -m http.server</code> 등으로 로컬 서버 실행<br>
+    2. <code>node src/index.js http://localhost:포트/파일명.html</code> 로 SEO 체커 실행<br>
+    3. <strong>[7/7] Open Graph 설명 (og:description)</strong> 항목 결과 확인
+  </div>
+
+</body>
+</html>

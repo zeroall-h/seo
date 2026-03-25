@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find . -type d -not -path */node_modules/*)",
+      "Bash(git:*)"
+    ]
+  }
+}

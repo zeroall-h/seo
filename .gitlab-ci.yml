@@ -1,22 +1,9 @@
-stages:
-  - deploy
-
-deploy:
+pages:
   stage: deploy
   script:
-    - export NVM_DIR="$HOME/.nvm"
-    - '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" || true'
-    - nvm install 16 || (curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && . "$HOME/.nvm/nvm.sh" && nvm install 16)
-    - nvm use 16
-    - node --version
-    - APP_DIR="$HOME/apps/seo-checker"
-    - mkdir -p $APP_DIR
-    - cp -r $CI_PROJECT_DIR/* $APP_DIR/
-    - cd $APP_DIR
-    - npm install --omit=dev
-    - "[ -f $APP_DIR/seo-checker.pid ] && kill $(cat $APP_DIR/seo-checker.pid) 2>/dev/null || true"
-    - nohup node src/server.js > seo-checker.log 2>&1 & echo $! > seo-checker.pid
-    - sleep 2
-    - curl -s http://localhost:3000 > /dev/null && echo "Deploy success" || (cat seo-checker.log && exit 1)
+    - mkdir -p public
+  artifacts:
+    paths:
+      - public
   only:
     - master

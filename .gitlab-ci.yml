@@ -1,34 +1,20 @@
 stages:
-  - build
   - deploy
-
-variables:
-  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  IMAGE_LATEST: $CI_REGISTRY_IMAGE:latest
-
-build:
-  stage: build
-  image: docker:24
-  services:
-    - docker:24-dind
-  script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build -t $IMAGE_TAG -t $IMAGE_LATEST .
-    - docker push $IMAGE_TAG
-    - docker push $IMAGE_LATEST
-  only:
-    - master
 
 deploy:
   stage: deploy
-  image: docker:24
-  services:
-    - docker:24-dind
   script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker pull $IMAGE_LATEST
-    - docker stop seo-checker || true
-    - docker rm seo-checker || true
-    - docker run -d --name seo-checker -p 3000:3000 --restart unless-stopped $IMAGE_LATEST
+    - export NVM_DIR="$HOME/.nvm"
+    - '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" || true'
+    - node --version || (curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && . "$HOME/.nvm/nvm.sh" && nvm install 20)
+    - APP_DIR="$HOME/apps/seo-checker"
+    - mkdir -p $APP_DIR
+    - cp -r $CI_PROJECT_DIR/* $APP_DIR/
+    - cd $APP_DIR
+    - npm install --omit=dev
+    - kill $(lsof -t -i:3000) 2>/dev/null || true
+    - nohup node src/server.js > seo-checker.log 2>&1 &
+    - sleep 2
+    - curl -s http://localhost:3000 > /dev/null && echo "Deploy success" || (cat seo-checker.log && exit 1)
   only:
     - master

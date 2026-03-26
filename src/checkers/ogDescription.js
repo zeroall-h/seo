@@ -37,7 +37,7 @@ export async function checkOgDescription(url) {
 
     const $ = cheerio.load(response.data);
     const ogDesc = $('meta[property="og:description"]').attr('content')?.trim() || null;
-    const metaDesc = $('meta[name="description"]').attr('content')?.trim() || null;
+    const metaDesc = $('meta').filter((_, el) => ($(el).attr('name') || '').toLowerCase() === 'description').attr('content')?.trim() || null;
 
     const details = [];
     let pass = true;
@@ -64,6 +64,10 @@ export async function checkOgDescription(url) {
       details.push({ type: 'warn', text: `og:description이 다소 긴 편 (${len}자) - 검색 결과에서 잘릴 수 있음` });
       details.push({ type: 'tip', text: `${OG_DESC_WARN_LENGTH}자 이내로 작성하면 소셜 공유 미리보기에서 설명이 온전히 표시됩니다.` });
       pass = false;
+    } else if (len > 80) {
+      details.push({ type: 'warn', text: `og:description이 다소 긴 편 (${len}자)` });
+      details.push({ type: 'tip', text: '사용자가 쉽게 사이트를 파악할 수 있도록 80자 이내로 설명문을 작성해주세요.' });
+      pass = false;
     } else if (len < 10) {
       details.push({ type: 'warn', text: `og:description이 너무 짧음 (${len}자) - 내용을 충분히 설명하지 못할 수 있음` });
       details.push({ type: 'tip', text: '페이지의 핵심 내용을 담은 1~2문장(30~200자)으로 작성하세요. 사용자가 링크를 클릭하고 싶어질 만한 설명이 좋습니다.' });
@@ -87,11 +91,12 @@ export async function checkOgDescription(url) {
       details.push({ type: 'info', text: `meta description과 다름: "${metaDesc}" → 검색엔진이 적합한 것을 선택` });
     }
 
+    const warn = !pass && len > 80;
     const message = pass
       ? `og:description 정상 (${len}자)`
       : `og:description 문제 있음 (${len}자)`;
 
-    return { pass, message, details };
+    return { pass, warn, message, details };
   } catch (error) {
     return {
       pass: false,

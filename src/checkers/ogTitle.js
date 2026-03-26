@@ -2,7 +2,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 
 // 네이버 가이드 기준: og:title도 title 태그와 동일한 길이 기준 적용
-const OG_TITLE_WARN_LENGTH = 60;
+const OG_TITLE_WARN_LENGTH = 80;
 const OG_TITLE_MAX_LENGTH = 100;
 
 function detectRepeatedKeywords(text) {
@@ -62,7 +62,11 @@ export async function checkOgTitle(url) {
       pass = false;
     } else if (len > OG_TITLE_WARN_LENGTH) {
       details.push({ type: 'warn', text: `og:title이 다소 긴 편 (${len}자) - 검색 결과에서 잘릴 수 있음` });
-      details.push({ type: 'tip', text: `${OG_TITLE_WARN_LENGTH}자 이내로 작성하면 소셜 공유 및 검색 결과에서 제목이 온전히 표시됩니다.` });
+      details.push({ type: 'tip', text: `${OG_TITLE_WARN_LENGTH}자 이내로 작성하면 소셜 공유 미리보기에서 제목이 온전히 표시됩니다.` });
+      pass = false;
+    } else if (len > 40) {
+      details.push({ type: 'warn', text: `og:title이 다소 긴 편 (${len}자)` });
+      details.push({ type: 'tip', text: '사용자가 쉽게 사이트를 파악할 수 있도록 40자 이내로 제목을 작성해주세요.' });
       pass = false;
     } else {
       details.push({ type: 'info', text: `og:title 길이 양호 (${len}자)` });
@@ -83,11 +87,12 @@ export async function checkOgTitle(url) {
       details.push({ type: 'info', text: 'title 태그와 동일' });
     }
 
+    const warn = !pass && len > 40;
     const message = pass
       ? `og:title 정상 (${len}자)`
       : `og:title 문제 있음 (${len}자)`;
 
-    return { pass, message, details };
+    return { pass, warn, message, details };
   } catch (error) {
     return {
       pass: false,

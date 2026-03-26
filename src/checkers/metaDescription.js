@@ -37,7 +37,7 @@ export async function checkMetaDescription(url) {
 
     const $ = cheerio.load(response.data);
     const title = $('head title').first().text().trim();
-    const desc = $('meta[name="description"]').attr('content')?.trim() || null;
+    const desc = $('meta').filter((_, el) => ($(el).attr('name') || '').toLowerCase() === 'description').attr('content')?.trim() || null;
     const ogDesc = $('meta[property="og:description"]').attr('content')?.trim() || null;
 
     const details = [];
@@ -75,6 +75,10 @@ export async function checkMetaDescription(url) {
       details.push({ type: 'warn', text: `설명이 다소 긴 편 (${len}자) - 검색 결과에서 잘릴 수 있음` });
       details.push({ type: 'tip', text: `${DESC_WARN_LENGTH}자 이내로 작성하면 검색 결과에서 설명이 잘리지 않습니다.` });
       pass = false;
+    } else if (len > 80) {
+      details.push({ type: 'warn', text: `설명이 다소 긴 편 (${len}자)` });
+      details.push({ type: 'tip', text: '사용자가 쉽게 사이트를 파악할 수 있도록 80자 이내로 설명문을 작성해주세요.' });
+      pass = false;
     } else {
       details.push({ type: 'info', text: `설명 길이 양호 (${len}자)` });
     }
@@ -105,11 +109,12 @@ export async function checkMetaDescription(url) {
       details.push({ type: 'tip', text: '<meta property="og:description" content="페이지 설명">을 추가하면 소셜 미디어 공유 시 설명이 올바르게 표시됩니다.' });
     }
 
+    const warn = !pass && len > 80;
     const message = pass
       ? `meta description 정상 (${len}자)`
       : `meta description 문제 있음 (${len}자)`;
 
-    return { pass, message, details };
+    return { pass, warn, message, details };
   } catch (error) {
     return {
       pass: false,

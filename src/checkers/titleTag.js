@@ -2,7 +2,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 
 // 네이버 가이드 기준: 검색 결과에서 표현 가능한 수준의 길이 권장
-const TITLE_WARN_LENGTH = 60;
+const TITLE_WARN_LENGTH = 40;
 const TITLE_MAX_LENGTH = 100;
 
 function detectRepeatedKeywords(title) {
@@ -76,11 +76,12 @@ export async function checkTitleTag(url) {
       pass = false;
     }
 
+    const warn = !pass && len > TITLE_WARN_LENGTH;
     const message = pass
       ? `title 태그 정상 (${len}자)`
       : `title 태그 문제 있음 (${len}자)`;
 
-    return { pass, message, details };
+    return { pass, warn, message, details };
   } catch (error) {
     return {
       pass: false,

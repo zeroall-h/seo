@@ -6,7 +6,9 @@ deploy:
   script:
     - export NVM_DIR="$HOME/.nvm"
     - '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" || true'
-    - node --version || (curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && . "$HOME/.nvm/nvm.sh" && nvm install 20)
+    - nvm install 16 || (curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && . "$HOME/.nvm/nvm.sh" && nvm install 16)
+    - nvm use 16
+    - node --version
     - APP_DIR="$HOME/apps/seo-checker"
     - mkdir -p $APP_DIR
     - cp -r $CI_PROJECT_DIR/* $APP_DIR/

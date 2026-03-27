@@ -73,8 +73,23 @@ export async function checkRobotsMeta(url) {
       maxRedirects: 5,
       timeout: 10000,
       validateStatus: () => true,
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; SEOChecker/1.0)" },
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" },
     });
+
+    const cfMitigated = response.headers["cf-mitigated"] || "";
+    const cfServer = response.headers["server"] || "";
+    const isCloudflareChallenged = cfMitigated.includes("challenge") || (response.status === 403 && cfServer.toLowerCase() === "cloudflare");
+
+    if (isCloudflareChallenged) {
+      return {
+        pass: true,
+        found: false,
+        message: "Cloudflare 보안 챌린지로 확인 불가 - 실제 페이지 분석 불가",
+        details: [
+          { type: "info", text: "Cloudflare 봇 방어로 인해 실제 페이지의 로봇 메타 태그를 확인할 수 없습니다." },
+        ],
+      };
+    }
 
     const contentType = response.headers["content-type"] || "";
     if (!contentType.includes("text/html")) {

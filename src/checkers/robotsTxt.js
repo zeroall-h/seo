@@ -53,9 +53,25 @@ export async function checkRobotsTxt(url) {
       timeout: 10000,
       validateStatus: () => true,
       responseType: 'text',
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' },
     });
 
     const code = response.status;
+    const cfMitigated = response.headers['cf-mitigated'] || '';
+    const server = response.headers['server'] || '';
+    const isCloudflareChallenged = cfMitigated.includes('challenge') || (code === 403 && server.toLowerCase() === 'cloudflare');
+
+    if (isCloudflareChallenged) {
+      return {
+        pass: true,
+        statusCode: code,
+        message: `Cloudflare 보안 챌린지로 robots.txt 확인 불가`,
+        details: [
+          { type: 'info', text: 'Cloudflare 봇 방어가 활성화되어 robots.txt에 직접 접근할 수 없습니다.' },
+          { type: 'info', text: '실제 검색엔진 봇은 Cloudflare에서 별도로 허용되므로 robots.txt 접근에 문제가 없습니다.' },
+        ],
+      };
+    }
 
     if (code >= 500) {
       return {

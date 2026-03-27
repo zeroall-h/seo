@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import chalk from 'chalk';
+import { fetchPage, fetchHttpStatus, fetchRobotsTxt } from './utils/fetchPage.js';
 import { checkHttpStatus } from './checkers/httpStatus.js';
 import { checkRobotsTxt } from './checkers/robotsTxt.js';
 import { checkRobotsMeta } from './checkers/robotsMeta.js';
@@ -11,6 +12,29 @@ import { checkOgDescription } from './checkers/ogDescription.js';
 function normalizeUrl(input) {
   if (/^https?:\/\//i.test(input)) return input;
   return `https://${input}`;
+}
+
+function printResult(label, result) {
+  if (result.pass) {
+    const codeStr = result.code ? `${result.code} ` : '';
+    console.log(`  ✅ ${chalk.green(`${codeStr}${result.message}`)}`);
+  } else {
+    const codeStr = result.code ? `${result.code} ` : '';
+    console.log(`  ❌ ${chalk.red(`${codeStr}${result.message}`)}`);
+  }
+  if (result.location) {
+    console.log(`     ${chalk.gray(`→ ${result.location}`)}`);
+  }
+  for (const detail of (result.details || [])) {
+    if (detail.type === 'warn') {
+      console.log(`     ${chalk.yellow(`⚠️  ${detail.text}`)}`);
+    } else if (detail.type === 'tip') {
+      console.log(`     ${chalk.blue(`💡 ${detail.text}`)}`);
+    } else {
+      console.log(`     ${chalk.gray(`ℹ️  ${detail.text}`)}`);
+    }
+  }
+  console.log();
 }
 
 async function main() {
@@ -27,139 +51,39 @@ async function main() {
   console.log(chalk.bold('\n🔍 SEO Checker - 분석 시작'));
   console.log(chalk.gray(`URL: ${url}\n`));
 
-  console.log(chalk.bold('[1/5] HTTP 상태코드'));
+  // 페이지 데이터 한 번에 가져오기 (Cloudflare 시 Puppeteer 폴백)
+  console.log(chalk.gray('📡 페이지 데이터 수집 중...\n'));
 
-  const result = await checkHttpStatus(url);
+  const [httpData, pageData, robotsData] = await Promise.all([
+    fetchHttpStatus(url),
+    fetchPage(url),
+    fetchRobotsTxt(url),
+  ]);
 
-  if (result.pass) {
-    const codeStr = result.code ? `${result.code} ` : '';
-    console.log(`  ✅ ${chalk.green(`${codeStr}${result.message}`)}`);
-    if (result.location) {
-      console.log(`     ${chalk.gray(`→ ${result.location}`)}`);
-    }
-  } else {
-    const codeStr = result.code ? `${result.code} ` : '';
-    console.log(`  ❌ ${chalk.red(`${codeStr}${result.message}`)}`);
-    if (result.location) {
-      console.log(`     ${chalk.gray(`→ ${result.location}`)}`);
-    }
+  if (pageData.usedPuppeteer) {
+    console.log(chalk.cyan('🌐 Cloudflare 감지 → 헤드리스 브라우저로 페이지 로드 완료\n'));
   }
 
-  console.log();
-  console.log(chalk.bold('[2/5] robots.txt'));
+  console.log(chalk.bold('[1/7] HTTP 상태코드'));
+  printResult('HTTP', checkHttpStatus(httpData));
 
-  const robotsResult = await checkRobotsTxt(url);
+  console.log(chalk.bold('[2/7] robots.txt'));
+  printResult('robots.txt', checkRobotsTxt(robotsData));
 
-  if (robotsResult.pass) {
-    console.log(`  ✅ ${chalk.green(robotsResult.message)}`);
-  } else {
-    console.log(`  ❌ ${chalk.red(robotsResult.message)}`);
-  }
+  console.log(chalk.bold('[3/7] 로봇 메타 태그'));
+  printResult('로봇 메타', checkRobotsMeta(pageData.html));
 
-  for (const detail of robotsResult.details) {
-    if (detail.type === 'warn') {
-      console.log(`     ${chalk.yellow(`⚠️  ${detail.text}`)}`);
-    } else {
-      console.log(`     ${chalk.gray(`ℹ️  ${detail.text}`)}`);
-    }
-  }
+  console.log(chalk.bold('[4/7] 페이지 제목 (title 태그)'));
+  printResult('title', checkTitleTag(pageData.html));
 
-  console.log();
-  console.log(chalk.bold('[3/5] 로봇 메타 태그'));
+  console.log(chalk.bold('[5/7] 사이트 설명 (meta description)'));
+  printResult('description', checkMetaDescription(pageData.html));
 
-  const metaResult = await checkRobotsMeta(url);
-
-  if (metaResult.pass) {
-    console.log(`  ✅ ${chalk.green(metaResult.message)}`);
-  } else {
-    console.log(`  ❌ ${chalk.red(metaResult.message)}`);
-  }
-
-  for (const detail of metaResult.details) {
-    if (detail.type === 'warn') {
-      console.log(`     ${chalk.yellow(`⚠️  ${detail.text}`)}`);
-    } else {
-      console.log(`     ${chalk.gray(`ℹ️  ${detail.text}`)}`);
-    }
-  }
-
-  console.log();
-  console.log(chalk.bold('[4/6] 페이지 제목 (title 태그)'));
-
-  const titleResult = await checkTitleTag(url);
-
-  if (titleResult.pass) {
-    console.log(`  ✅ ${chalk.green(titleResult.message)}`);
-  } else {
-    console.log(`  ❌ ${chalk.red(titleResult.message)}`);
-  }
-
-  for (const detail of titleResult.details) {
-    if (detail.type === 'warn') {
-      console.log(`     ${chalk.yellow(`⚠️  ${detail.text}`)}`);
-    } else {
-      console.log(`     ${chalk.gray(`ℹ️  ${detail.text}`)}`);
-    }
-  }
-
-  console.log();
-  console.log(chalk.bold('[5/6] 사이트 설명 (meta description)'));
-
-  const descResult = await checkMetaDescription(url);
-
-  if (descResult.pass) {
-    console.log(`  ✅ ${chalk.green(descResult.message)}`);
-  } else {
-    console.log(`  ❌ ${chalk.red(descResult.message)}`);
-  }
-
-  for (const detail of descResult.details) {
-    if (detail.type === 'warn') {
-      console.log(`     ${chalk.yellow(`⚠️  ${detail.text}`)}`);
-    } else {
-      console.log(`     ${chalk.gray(`ℹ️  ${detail.text}`)}`);
-    }
-  }
-
-  console.log();
   console.log(chalk.bold('[6/7] Open Graph 제목 (og:title)'));
+  printResult('og:title', checkOgTitle(pageData.html));
 
-  const ogTitleResult = await checkOgTitle(url);
-
-  if (ogTitleResult.pass) {
-    console.log(`  ✅ ${chalk.green(ogTitleResult.message)}`);
-  } else {
-    console.log(`  ❌ ${chalk.red(ogTitleResult.message)}`);
-  }
-
-  for (const detail of ogTitleResult.details) {
-    if (detail.type === 'warn') {
-      console.log(`     ${chalk.yellow(`⚠️  ${detail.text}`)}`);
-    } else {
-      console.log(`     ${chalk.gray(`ℹ️  ${detail.text}`)}`);
-    }
-  }
-
-  console.log();
   console.log(chalk.bold('[7/7] Open Graph 설명 (og:description)'));
-
-  const ogDescResult = await checkOgDescription(url);
-
-  if (ogDescResult.pass) {
-    console.log(`  ✅ ${chalk.green(ogDescResult.message)}`);
-  } else {
-    console.log(`  ❌ ${chalk.red(ogDescResult.message)}`);
-  }
-
-  for (const detail of ogDescResult.details) {
-    if (detail.type === 'warn') {
-      console.log(`     ${chalk.yellow(`⚠️  ${detail.text}`)}`);
-    } else {
-      console.log(`     ${chalk.gray(`ℹ️  ${detail.text}`)}`);
-    }
-  }
-
-  console.log();
+  printResult('og:description', checkOgDescription(pageData.html));
 }
 
 main();

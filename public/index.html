@@ -306,7 +306,9 @@
         cardsEl.innerHTML = "";
 
         try {
-          const res = await fetch(`https://dev-n8n.ais.hivelab.co.kr/webhook-test/seo-check?url=${encodeURIComponent(url)}`);
+          const res = await fetch(
+            `https://dev-n8n.ais.hivelab.co.kr/webhook/seo-check?url=${encodeURIComponent(url)}`,
+          );
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "서버 오류");
 
@@ -333,7 +335,8 @@
 
             const header = document.createElement("div");
             header.className = "card-header";
-            const statusIcon = status === "pass" ? "✅" : status === "warn" ? "⚠️" : "❌";
+            const statusIcon =
+              status === "pass" ? "✅" : status === "warn" ? "⚠️" : "❌";
             header.innerHTML = `
             <span class="status-icon">${statusIcon}</span>
             <span class="card-name">${check.name}</span>
@@ -345,7 +348,11 @@
             body.className = "card-body";
 
             function escapeHtml(str) {
-              return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+              return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
             }
             if (check.details && check.details.length > 0) {
               check.details.forEach((d) => {

@@ -1,106 +1,57 @@
-import axios from 'axios';
 import * as cheerio from 'cheerio';
 
-// 네이버 가이드 기준: 검색 결과에서 표현 가능한 수준의 길이 권장
 const TITLE_WARN_LENGTH = 40;
 const TITLE_MAX_LENGTH = 100;
 
 function detectRepeatedKeywords(title) {
   const words = title.split(/\s+/).filter(w => w.length > 1);
   const freq = {};
-  for (const w of words) {
-    const key = w.toLowerCase();
-    freq[key] = (freq[key] || 0) + 1;
-  }
-  return Object.entries(freq)
-    .filter(([, count]) => count >= 3)
-    .map(([word]) => word);
+  for (const w of words) { const key = w.toLowerCase(); freq[key] = (freq[key] || 0) + 1; }
+  return Object.entries(freq).filter(([, count]) => count >= 3).map(([word]) => word);
 }
 
-export async function checkTitleTag(url) {
-  try {
-    const response = await axios.get(url, {
-      maxRedirects: 5,
-      timeout: 10000,
-      validateStatus: () => true,
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' },
-    });
+export function checkTitleTag(html) {
+  if (!html) {
+    return { pass: false, message: '접속 실패', details: [] };
+  }
 
-    const cfMitigated = response.headers['cf-mitigated'] || '';
-    const cfServer = response.headers['server'] || '';
-    const isCloudflareChallenged = cfMitigated.includes('challenge') || (response.status === 403 && cfServer.toLowerCase() === 'cloudflare');
+  const $ = cheerio.load(html);
+  const title = $('head title').first().text().trim();
+  const details = [];
+  let pass = true;
 
-    if (isCloudflareChallenged) {
-      return {
-        pass: true,
-        message: 'Cloudflare 보안 챌린지로 확인 불가 - 실제 페이지 분석 불가',
-        details: [
-          { type: 'info', text: 'Cloudflare 봇 방어로 인해 실제 페이지의 title 태그를 확인할 수 없습니다.' },
-        ],
-      };
-    }
-
-    const contentType = response.headers['content-type'] || '';
-    if (!contentType.includes('text/html')) {
-      return {
-        pass: true,
-        message: `HTML 문서가 아님 (${contentType || '없음'}) - title 태그 검사 건너뜀`,
-        details: [],
-      };
-    }
-
-    const $ = cheerio.load(response.data);
-    const title = $('head title').first().text().trim();
-
-    const details = [];
-    let pass = true;
-
-    // title 태그 없음
-    if (!title) {
-      return {
-        pass: false,
-        message: 'title 태그 없음 - 검색 노출에 불이익',
-        details: [
-          { type: 'tip', text: '<head> 태그 안에 <title>페이지 제목</title>을 추가하세요. 브랜드명이나 콘텐츠 주제를 담은 고유한 제목을 사용하는 것이 좋습니다.' },
-        ],
-      };
-    }
-
-    details.push({ type: 'info', text: `title: "${title}"` });
-
-    // 길이 검사
-    const len = title.length;
-    if (len > TITLE_MAX_LENGTH) {
-      details.push({ type: 'warn', text: `제목이 너무 김 (${len}자) - 사용자가 사이트 파악 어려울 수 있음` });
-      details.push({ type: 'tip', text: `검색 결과에서 제대로 표시될 수 있도록 제목을 ${TITLE_WARN_LENGTH}자 이내로 줄여주세요. 핵심 키워드를 앞쪽에 배치하세요.` });
-      pass = false;
-    } else if (len > TITLE_WARN_LENGTH) {
-      details.push({ type: 'warn', text: `제목이 다소 긴 편 (${len}자) - 검색 결과에서 잘릴 수 있음` });
-      details.push({ type: 'tip', text: `사용자가 쉽게 사이트를 파악할 수 있도록 ${TITLE_WARN_LENGTH}자 이내로 제목을 작성해주세요.` });
-      pass = false;
-    } else {
-      details.push({ type: 'info', text: `제목 길이 양호 (${len}자)` });
-    }
-
-    // 반복 키워드 검사
-    const repeated = detectRepeatedKeywords(title);
-    if (repeated.length > 0) {
-      details.push({ type: 'warn', text: `반복 키워드 감지: ${repeated.map(w => `"${w}"`).join(', ')} - 검색 노출 불이익 가능` });
-      details.push({ type: 'tip', text: '동일 키워드를 3회 이상 반복하면 스팸으로 간주될 수 있습니다. 각 키워드는 자연스러운 문장 안에서 1~2회만 사용하세요.' });
-      pass = false;
-    }
-
-    const warn = !pass && len > TITLE_WARN_LENGTH;
-    const message = pass
-      ? `title 태그 정상 (${len}자)`
-      : `title 태그 문제 있음 (${len}자)`;
-
-    return { pass, warn, message, details };
-  } catch (error) {
+  if (!title) {
     return {
       pass: false,
-      message: `접속 실패 - ${error.message}`,
-      details: [],
+      message: 'title 태그 없음 - 검색 노출에 불이익',
+      details: [{ type: 'tip', text: '<head> 태그 안에 <title>페이지 제목</title>을 추가하세요. 브랜드명이나 콘텐츠 주제를 담은 고유한 제목을 사용하는 것이 좋습니다.' }],
     };
   }
+
+  details.push({ type: 'info', text: `title: "${title}"` });
+
+  const len = title.length;
+  if (len > TITLE_MAX_LENGTH) {
+    details.push({ type: 'warn', text: `제목이 너무 김 (${len}자) - 사용자가 사이트 파악 어려울 수 있음` });
+    details.push({ type: 'tip', text: `검색 결과에서 제대로 표시될 수 있도록 제목을 ${TITLE_WARN_LENGTH}자 이내로 줄여주세요. 핵심 키워드를 앞쪽에 배치하세요.` });
+    pass = false;
+  } else if (len > TITLE_WARN_LENGTH) {
+    details.push({ type: 'warn', text: `제목이 다소 긴 편 (${len}자) - 검색 결과에서 잘릴 수 있음` });
+    details.push({ type: 'tip', text: `사용자가 쉽게 사이트를 파악할 수 있도록 ${TITLE_WARN_LENGTH}자 이내로 제목을 작성해주세요.` });
+    pass = false;
+  } else {
+    details.push({ type: 'info', text: `제목 길이 양호 (${len}자)` });
+  }
+
+  const repeated = detectRepeatedKeywords(title);
+  if (repeated.length > 0) {
+    details.push({ type: 'warn', text: `반복 키워드 감지: ${repeated.map(w => `"${w}"`).join(', ')} - 검색 노출 불이익 가능` });
+    details.push({ type: 'tip', text: '동일 키워드를 3회 이상 반복하면 스팸으로 간주될 수 있습니다. 각 키워드는 자연스러운 문장 안에서 1~2회만 사용하세요.' });
+    pass = false;
+  }
+
+  const warn = !pass && len > TITLE_WARN_LENGTH;
+  const message = pass ? `title 태그 정상 (${len}자)` : `title 태그 문제 있음 (${len}자)`;
+
+  return { pass, warn, message, details };
 }

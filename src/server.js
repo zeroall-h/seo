@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { fetchPage, fetchHttpStatus, fetchRobotsTxt } from './utils/fetchPage.js';
 import { checkHttpStatus } from './checkers/httpStatus.js';
 import { checkRobotsTxt } from './checkers/robotsTxt.js';
 import { checkRobotsMeta } from './checkers/robotsMeta.js';
@@ -26,15 +27,19 @@ app.get('/check', async (req, res) => {
   const url = normalizeUrl(input);
 
   try {
-    const [http, robots, robotsMeta, title, desc, ogTitle, ogDesc] = await Promise.all([
-      checkHttpStatus(url),
-      checkRobotsTxt(url),
-      checkRobotsMeta(url),
-      checkTitleTag(url),
-      checkMetaDescription(url),
-      checkOgTitle(url),
-      checkOgDescription(url),
+    const [httpData, pageData, robotsData] = await Promise.all([
+      fetchHttpStatus(url),
+      fetchPage(url),
+      fetchRobotsTxt(url),
     ]);
+
+    const http = checkHttpStatus(httpData);
+    const robots = checkRobotsTxt(robotsData);
+    const robotsMeta = checkRobotsMeta(pageData.html);
+    const title = checkTitleTag(pageData.html);
+    const desc = checkMetaDescription(pageData.html);
+    const ogTitle = checkOgTitle(pageData.html);
+    const ogDesc = checkOgDescription(pageData.html);
 
     res.json({
       url,
@@ -60,7 +65,7 @@ const server = app.listen(PORT, () => {
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`포트 ${PORT} 이미 사용 중. PORT 환경변수로 다른 포트를 지정하세요. 예: PORT=3001 npm run server`);
+    console.error(`포트 ${PORT} 이미 사용 중. PORT 환경변수로 다른 포트를 지정하세요.`);
   } else {
     console.error(err);
   }

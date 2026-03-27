@@ -1,37 +1,23 @@
-import axios from "axios";
 import * as cheerio from "cheerio";
 
 const KNOWN_DIRECTIVES = new Set([
-  "index",
-  "noindex",
-  "follow",
-  "nofollow",
-  "all",
-  "none",
-  "noarchive",
-  "nosnippet",
-  "nosourceinfo",
-  "noimageindex",
-  "notranslate",
-  "unavailable_after",
+  "index", "noindex", "follow", "nofollow", "all", "none",
+  "noarchive", "nosnippet", "nosourceinfo", "noimageindex",
+  "notranslate", "unavailable_after",
 ]);
 
 function parseDirectives(contentValue) {
-  return contentValue
-    .split(",")
-    .map((d) => d.trim().toLowerCase())
-    .filter(Boolean);
+  return contentValue.split(",").map((d) => d.trim().toLowerCase()).filter(Boolean);
 }
 
 function analyzeDirectives(directives) {
   const details = [];
-
   const hasNoindex = directives.includes("noindex");
   const hasNofollow = directives.includes("nofollow");
-  const hasNone = directives.includes("none"); // none = noindex,nofollow
+  const hasNone = directives.includes("none");
   const hasIndex = directives.includes("index");
   const hasFollow = directives.includes("follow");
-  const hasAll = directives.includes("all"); // all = index,follow
+  const hasAll = directives.includes("all");
   const hasNosourceinfo = directives.includes("nosourceinfo");
 
   const effectiveNoindex = hasNoindex || hasNone;
@@ -42,133 +28,70 @@ function analyzeDirectives(directives) {
   } else if (hasIndex || hasAll) {
     details.push({ type: "info", text: "index: 검색 색인 대상" });
   }
-
   if (effectiveNofollow) {
     details.push({ type: "warn", text: "nofollow: 페이지 내 링크 미수집" });
   } else if (hasFollow || hasAll) {
     details.push({ type: "info", text: "follow: 페이지 내 링크 수집" });
   }
-
   if (hasNosourceinfo) {
-    details.push({
-      type: "info",
-      text: "nosourceinfo: AI 자동 출처 설명 미제공",
-    });
+    details.push({ type: "info", text: "nosourceinfo: AI 자동 출처 설명 미제공" });
   }
-
-  // 알 수 없는 지시어 경고
   for (const d of directives) {
-    const base = d.split(":")[0]; // unavailable_after:DATE 형식 처리
+    const base = d.split(":")[0];
     if (!KNOWN_DIRECTIVES.has(base)) {
       details.push({ type: "warn", text: `알 수 없는 지시어: "${d}"` });
     }
   }
-
   return { effectiveNoindex, effectiveNofollow, details };
 }
 
-export async function checkRobotsMeta(url) {
-  try {
-    const response = await axios.get(url, {
-      maxRedirects: 5,
-      timeout: 10000,
-      validateStatus: () => true,
-      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" },
-    });
+export function checkRobotsMeta(html) {
+  if (!html) {
+    return { pass: false, found: false, message: '접속 실패', details: [] };
+  }
 
-    const cfMitigated = response.headers["cf-mitigated"] || "";
-    const cfServer = response.headers["server"] || "";
-    const isCloudflareChallenged = cfMitigated.includes("challenge") || (response.status === 403 && cfServer.toLowerCase() === "cloudflare");
+  const $ = cheerio.load(html);
+  const robotsTags = [];
 
-    if (isCloudflareChallenged) {
-      return {
-        pass: true,
-        found: false,
-        message: "Cloudflare 보안 챌린지로 확인 불가 - 실제 페이지 분석 불가",
-        details: [
-          { type: "info", text: "Cloudflare 봇 방어로 인해 실제 페이지의 로봇 메타 태그를 확인할 수 없습니다." },
-        ],
-      };
+  $("meta").each((_, el) => {
+    const name = ($(el).attr("name") || "").toLowerCase();
+    if (name === "robots" || name === "googlebot" || name === "yeti") {
+      robotsTags.push({ name: $(el).attr("name"), content: $(el).attr("content") || "" });
     }
+  });
 
-    const contentType = response.headers["content-type"] || "";
-    if (!contentType.includes("text/html")) {
-      return {
-        pass: true,
-        found: false,
-        message: `HTML 문서가 아님 (${contentType || "없음"}) - 메타 태그 검사 건너뜀`,
-        details: [],
-      };
-    }
-
-    const $ = cheerio.load(response.data);
-    const robotsTags = [];
-
-    $("meta").each((_, el) => {
-      const name = ($(el).attr("name") || "").toLowerCase();
-      if (name === "robots" || name === "googlebot" || name === "yeti") {
-        robotsTags.push({
-          name: $(el).attr("name"),
-          content: $(el).attr("content") || "",
-        });
-      }
-    });
-
-    if (robotsTags.length === 0) {
-      return {
-        pass: true,
-        found: false,
-        message: "기본값 index, follow 적용",
-        details: [
-          {
-            type: "info",
-            text: "네이버 로봇이 사이트를 수집할 수 있고 검색 결과에 노출할 수 있습니다.",
-          },
-        ],
-      };
-    }
-
-    const details = [];
-    let overallNoindex = false;
-    let overallNofollow = false;
-
-    for (const tag of robotsTags) {
-      const directives = parseDirectives(tag.content);
-      const {
-        effectiveNoindex,
-        effectiveNofollow,
-        details: tagDetails,
-      } = analyzeDirectives(directives);
-
-      details.push(...tagDetails);
-
-      if (effectiveNoindex) overallNoindex = true;
-      if (effectiveNofollow) overallNofollow = true;
-    }
-
-    const pass = !overallNoindex && !overallNofollow;
-    const statusParts = [];
-    if (overallNoindex) statusParts.push("noindex");
-    if (overallNofollow) statusParts.push("nofollow");
-
-    if (pass) {
-      details.unshift({
-        type: "info",
-        text: "네이버 로봇이 사이트를 수집할 수 있고 검색 결과에 노출할 수 있습니다.",
-      });
-    }
-
-    const message = pass
-      ? `로봇 메타 태그 있음 - 색인 허용${overallNofollow ? " (링크 미수집)" : ""}`
-      : `로봇 메타 태그 있음 - 색인 제외 (${statusParts.join(", ")})`;
-
-    return { pass, found: true, message, details };
-  } catch (error) {
+  if (robotsTags.length === 0) {
     return {
-      pass: false,
-      found: false,
-      message: `접속 실패 - ${error.message}`,
-      details: [],
+      pass: true, found: false,
+      message: "기본값 index, follow 적용",
+      details: [{ type: "info", text: "네이버 로봇이 사이트를 수집할 수 있고 검색 결과에 노출할 수 있습니다." }],
     };
   }
+
+  const details = [];
+  let overallNoindex = false;
+  let overallNofollow = false;
+
+  for (const tag of robotsTags) {
+    const directives = parseDirectives(tag.content);
+    const { effectiveNoindex, effectiveNofollow, details: tagDetails } = analyzeDirectives(directives);
+    details.push(...tagDetails);
+    if (effectiveNoindex) overallNoindex = true;
+    if (effectiveNofollow) overallNofollow = true;
+  }
+
+  const pass = !overallNoindex && !overallNofollow;
+  const statusParts = [];
+  if (overallNoindex) statusParts.push("noindex");
+  if (overallNofollow) statusParts.push("nofollow");
+
+  if (pass) {
+    details.unshift({ type: "info", text: "네이버 로봇이 사이트를 수집할 수 있고 검색 결과에 노출할 수 있습니다." });
+  }
+
+  const message = pass
+    ? `로봇 메타 태그 있음 - 색인 허용${overallNofollow ? " (링크 미수집)" : ""}`
+    : `로봇 메타 태그 있음 - 색인 제외 (${statusParts.join(", ")})`;
+
+  return { pass, found: true, message, details };
 }

@@ -23,6 +23,12 @@
       "parameters": {
         "method": "GET",
         "url": "={{ $json.query.url && $json.query.url.startsWith('http') ? $json.query.url : 'https://' + $json.query.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "User-Agent", "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" }
+          ]
+        },
         "options": {
           "redirect": { "redirect": { "followRedirects": false } },
           "response": { "response": { "fullResponse": true } },
@@ -39,6 +45,12 @@
       "parameters": {
         "method": "GET",
         "url": "={{ $('Webhook').first().json.query.url && $('Webhook').first().json.query.url.startsWith('http') ? $('Webhook').first().json.query.url : 'https://' + $('Webhook').first().json.query.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "User-Agent", "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" }
+          ]
+        },
         "options": {
           "response": { "response": { "fullResponse": true, "responseFormat": "text" } },
           "timeout": 10000
@@ -54,6 +66,12 @@
       "parameters": {
         "method": "GET",
         "url": "={{ (() => { const u = $('Webhook').first().json.query.url; const full = u && u.startsWith('http') ? u : 'https://' + u; const m = full.match(/^(https?:\\/\\/[^/]+)/); return m ? m[1] + '/robots.txt' : full + '/robots.txt'; })() }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "User-Agent", "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" }
+          ]
+        },
         "options": {
           "response": { "response": { "fullResponse": true, "responseFormat": "text" } },
           "timeout": 10000

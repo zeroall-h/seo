@@ -57,6 +57,7 @@ export function checkMetaDescription(html) {
 
   if (title && desc === title) {
     details.push({ type: 'warn', text: '제목(title)과 설명이 동일 - 검색 노출 불이익 가능' });
+    details.push({ type: 'tip', text: '사이트 제목과 설명은 검색엔진에서 엄격하게 관리합니다. 제목과 설명을 서로 다르게 작성하고, 각 페이지의 콘텐츠 주제를 정확하게 설명하는 고유한 내용을 사용하세요.' });
     pass = false;
   }
 

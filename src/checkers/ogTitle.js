@@ -24,7 +24,7 @@ export function checkOgTitle(html) {
 
   if (!ogTitle) {
     details.push({ type: 'warn', text: 'og:title 태그 없음 - 소셜 공유 및 네이버 검색 활용도 저하 가능' });
-    details.push({ type: 'tip', text: '<meta property="og:title" content="페이지 제목">을 <head> 안에 추가하세요.' });
+    details.push({ type: 'tip', text: '<meta property="og:title" content="페이지 제목">을 <head> 안에 추가하세요.\n네이버 블로그, 카페, 페이스북, 인스타그램 등 소셜 미디어에서 공유될 때 올바른 제목이 표시되도록 Open Graph 태그를 설정하세요. 온라인 브랜딩에 활용하는 채널 정보 마크업도 함께 해주세요.' });
     if (title) details.push({ type: 'info', text: `대신 title 태그 존재: "${title}"` });
     return { pass: false, message: 'og:title 없음', details };
   }

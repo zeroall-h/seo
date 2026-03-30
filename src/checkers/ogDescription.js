@@ -24,7 +24,7 @@ export function checkOgDescription(html) {
 
   if (!ogDesc) {
     details.push({ type: 'warn', text: 'og:description 태그 없음 - 소셜 공유 및 네이버 검색 활용도 저하 가능' });
-    details.push({ type: 'tip', text: '<meta property="og:description" content="페이지 설명">을 <head> 안에 추가하세요.' });
+    details.push({ type: 'tip', text: '<meta property="og:description" content="페이지 설명">을 <head> 안에 추가하세요.\n네이버 블로그, 카페, 페이스북, 인스타그램 등 소셜 미디어에서 공유될 때 올바른 설명이 표시되도록 Open Graph 태그를 설정하세요. 사이트 연관 채널 정보를 함께 마크업하면 온라인 브랜딩에 도움이 됩니다.' });
     if (metaDesc) details.push({ type: 'info', text: `대신 meta description 존재: "${metaDesc}"` });
     return { pass: false, message: 'og:description 없음', details };
   }

@@ -24,7 +24,10 @@ export function checkTitleTag(html) {
     return {
       pass: false,
       message: 'title 태그 없음 - 검색 노출에 불이익',
-      details: [{ type: 'tip', text: '<head> 태그 안에 <title>페이지 제목</title>을 추가하세요. 브랜드명이나 콘텐츠 주제를 담은 고유한 제목을 사용하는 것이 좋습니다.' }],
+      details: [
+        { type: 'tip', text: '<head> 태그 안에 <title>페이지 제목</title>을 추가하세요. 브랜드명이나 콘텐츠 주제를 담은 고유한 제목을 사용하는 것이 좋습니다.' },
+        { type: 'tip', text: '사이트 제목과 설명은 검색엔진에서 엄격하게 관리합니다. 모든 페이지의 제목을 동일하게 표현하지 말고, 각 페이지의 콘텐츠 주제를 정확하게 설명할 수 있는 고유한 문구를 적어주세요.' },
+      ],
     };
   }
 
@@ -41,6 +44,7 @@ export function checkTitleTag(html) {
     pass = false;
   } else {
     details.push({ type: 'info', text: `제목 길이 양호 (${len}자)` });
+    details.push({ type: 'tip', text: '모든 페이지의 제목을 동일하게 표현하지 마세요. 각 페이지마다 콘텐츠 주제를 정확하게 설명할 수 있는 고유한 제목을 사용해야 검색 노출에 유리합니다.\n중복된 콘텐츠가 있는 여러 사이트를 운영하면 검색 노출에 불이익을 받을 수 있으니 유의하세요.' });
   }
 
   const repeated = detectRepeatedKeywords(title);

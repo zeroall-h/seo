@@ -25,13 +25,11 @@ function analyzeDirectives(directives) {
 
   if (effectiveNoindex) {
     details.push({ type: "warn", text: "noindex: 검색 결과에서 제외됨" });
-  } else if (hasIndex || hasAll) {
-    details.push({ type: "info", text: "index: 검색 색인 대상" });
+    details.push({ type: "tip", text: '메인 페이지의 meta 태그에 noindex 처리가 되어있다면 해제해주세요. noindex가 표기된 페이지는 검색 반영에서 제외됩니다.\n아래 태그를 제거하세요:\n<meta name="robots" content="noindex">' });
   }
   if (effectiveNofollow) {
     details.push({ type: "warn", text: "nofollow: 페이지 내 링크 미수집" });
-  } else if (hasFollow || hasAll) {
-    details.push({ type: "info", text: "follow: 페이지 내 링크 수집" });
+    details.push({ type: "tip", text: '페이지의 meta 태그에 nofollow 처리가 되어있다면 해제해주세요. nofollow가 표기된 페이지의 경우 페이지 내 링크 수집을 진행하지 않습니다.\n아래 태그를 제거하세요:\n<meta name="robots" content="nofollow">' });
   }
   if (hasNosourceinfo) {
     details.push({ type: "info", text: "nosourceinfo: AI 자동 출처 설명 미제공" });

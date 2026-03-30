@@ -44,7 +44,7 @@ export function checkHttpStatus(prefetched) {
   if (code >= 300 && code < 400) {
     details.push({
       type: "tip",
-      text: "301(영구 이동)은 SEO에 유리합니다. 302~307은 임시 이동으로, 검색엔진이 원본 URL을 유지합니다. 영구적으로 이전한 경우 301을 사용하세요.",
+      text: "301(영구 이동)은 SEO에 유리합니다. 302~307은 임시 이동으로, 검색엔진이 원본 URL을 유지합니다. 영구적으로 이전한 경우 301을 사용하세요.\n사이트의 메인 페이지가 자바스크립트 혹은 meta refresh 기법을 사용하여 redirect 된다면 검색엔진이 올바르게 인식하지 못할 수 있습니다. HTTP redirect 방식을 사용해주세요.",
     });
   }
   if (code >= 400) {

@@ -33,11 +33,11 @@ export function checkTitleTag(html) {
   const len = title.length;
   if (len > TITLE_MAX_LENGTH) {
     details.push({ type: 'warn', text: `제목이 너무 김 (${len}자) - 사용자가 사이트 파악 어려울 수 있음` });
-    details.push({ type: 'tip', text: `검색 결과에서 제대로 표시될 수 있도록 제목을 ${TITLE_WARN_LENGTH}자 이내로 줄여주세요. 핵심 키워드를 앞쪽에 배치하세요.` });
+    details.push({ type: 'tip', text: `모든 페이지의 제목을 동일하게 표현하지 마세요. 페이지의 제목은 콘텐츠 주제를 정확하게 설명할 수 있는 문구를 적어야 합니다. ${TITLE_WARN_LENGTH}자 이내로 핵심 키워드를 앞쪽에 배치하세요.` });
     pass = false;
   } else if (len > TITLE_WARN_LENGTH) {
     details.push({ type: 'warn', text: `제목이 다소 긴 편 (${len}자) - 검색 결과에서 잘릴 수 있음` });
-    details.push({ type: 'tip', text: `사용자가 쉽게 사이트를 파악할 수 있도록 ${TITLE_WARN_LENGTH}자 이내로 제목을 작성해주세요.` });
+    details.push({ type: 'tip', text: `모든 페이지의 제목을 동일하게 표현하지 마세요. 페이지의 제목은 콘텐츠 주제를 정확하게 설명할 수 있는 문구를 적어야 합니다. ${TITLE_WARN_LENGTH}자 이내로 작성해주세요.` });
     pass = false;
   } else {
     details.push({ type: 'info', text: `제목 길이 양호 (${len}자)` });

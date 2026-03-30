@@ -30,7 +30,8 @@ function parseRobotsContent(content) {
   if (hasSitemap) {
     details.push({ type: 'info', text: 'Sitemap 지시자 있음' });
   } else {
-    details.push({ type: 'info', text: 'Sitemap 지시자 없음 (sitemap.xml 등록 권장)' });
+    details.push({ type: 'warn', text: 'Sitemap 지시자 없음' });
+    details.push({ type: 'tip', text: '내 사이트에 있는 페이지들의 목록이 담겨있는 sitemap.xml의 위치를 robots.txt에 기록해서 검색 로봇이 내 사이트의 콘텐츠를 더 잘 수집할 수 있도록 도울 수 있습니다.\n\nUser-agent: *\nAllow: /\nSitemap: http://www.example.com/sitemap.xml' });
   }
 
   return details;
@@ -48,7 +49,10 @@ export function checkRobotsTxt(prefetched) {
       pass: false,
       statusCode: code,
       message: `${code} 서버 오류 - robots.txt 접근 불가`,
-      details: [],
+      details: [
+        { type: 'warn', text: `서버 오류 (HTTP ${code})로 robots.txt에 접근할 수 없습니다.` },
+        { type: 'tip', text: 'robots.txt 파일에 작성된 규칙은 같은 호스트, 프로토콜 및 포트 번호 하위의 페이지에 대해서만 유효합니다. 사이트의 콘텐츠 성격에 맞게 변경해주세요.\n\n(예) 네이버 검색로봇만 수집 허용\nUser-agent: *\nDisallow: /\nUser-agent: Yeti\nAllow: /\n\n(예) 모든 검색엔진의 로봇에 대하여 수집 허용\nUser-agent: *\nAllow: /\n\n(예) 사이트의 루트 페이지만 수집 허용\nUser-agent: *\nDisallow: /\nAllow: /$\n\n(예) 특정 경로 수집 비허용\nUser-agent: Yeti\nDisallow: /private*/' },
+      ],
     };
   }
 
@@ -59,7 +63,7 @@ export function checkRobotsTxt(prefetched) {
       message: `${code} robots.txt 없음`,
       details: [
         { type: 'warn', text: 'robots.txt 파일이 없음 - 크롤러 제어 불가' },
-        { type: 'tip', text: '사이트 루트(예: https://example.com/robots.txt)에 robots.txt 파일을 추가하세요. 크롤링을 허용할 경로와 차단할 경로를 명시적으로 지정할 수 있으며, Sitemap 위치도 함께 안내할 수 있습니다.\n예시)\nUser-agent: *\nAllow: /\nSitemap: https://example.com/sitemap.xml' },
+        { type: 'tip', text: 'robots.txt 파일에 작성된 규칙은 같은 호스트, 프로토콜 및 포트 번호 하위의 페이지에 대해서만 유효합니다. 사이트의 콘텐츠 성격에 맞게 변경해주세요.\n\n(예) 네이버 검색로봇만 수집 허용\nUser-agent: *\nDisallow: /\nUser-agent: Yeti\nAllow: /\n\n(예) 모든 검색엔진의 로봇에 대하여 수집 허용\nUser-agent: *\nAllow: /\n\n(예) 사이트의 루트 페이지만 수집 허용\nUser-agent: *\nDisallow: /\nAllow: /$\n\n(예) 특정 경로 수집 비허용\nUser-agent: Yeti\nDisallow: /private*/' },
       ],
     };
   }

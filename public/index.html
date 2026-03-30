@@ -368,9 +368,21 @@
                 }
                 body.appendChild(item);
               });
+            } else if (!check.pass) {
+              const guides = {
+                http: '서버 접속에 실패했습니다. URL이 올바른지, 서버가 정상 동작 중인지 확인하세요.',
+                robots: 'robots.txt 파일에 작성된 규칙은 같은 호스트, 프로토콜 및 포트 번호 하위의 페이지에 대해서만 유효합니다.&lt;br&gt;&lt;br&gt;(예) 네이버 검색로봇만 수집 허용&lt;br&gt;User-agent: *&lt;br&gt;Disallow: /&lt;br&gt;User-agent: Yeti&lt;br&gt;Allow: /&lt;br&gt;&lt;br&gt;(예) 모든 검색엔진의 로봇에 대하여 수집 허용&lt;br&gt;User-agent: *&lt;br&gt;Allow: /',
+                robotsMeta: '페이지의 meta 태그에 noindex 또는 nofollow 처리가 되어있다면 해제해주세요.&lt;br&gt;아래 태그를 제거하세요:&lt;br&gt;&amp;lt;meta name="robots" content="noindex"&amp;gt;&lt;br&gt;&amp;lt;meta name="robots" content="nofollow"&amp;gt;',
+                title: '페이지에 접속할 수 없어 title 태그를 확인하지 못했습니다. &lt;head&gt; 안에 &lt;title&gt;페이지 제목&lt;/title&gt;을 추가하세요.',
+                desc: '페이지에 접속할 수 없어 meta description을 확인하지 못했습니다. &lt;meta name="description" content="페이지 설명"&gt;을 추가하세요.',
+                ogTitle: '페이지에 접속할 수 없어 og:title을 확인하지 못했습니다. &lt;meta property="og:title" content="제목"&gt;을 추가하세요.',
+                ogDesc: '페이지에 접속할 수 없어 og:description을 확인하지 못했습니다. &lt;meta property="og:description" content="설명"&gt;을 추가하세요.',
+              };
+              const guide = guides[check.key] || '해당 항목을 확인할 수 없습니다. URL과 서버 상태를 점검하세요.';
+              body.innerHTML = `<div class="detail-item tip"><span class="detail-icon">💡</span><span>${guide}</span></div>`;
             } else {
               body.innerHTML =
-                '<div class="detail-item"><span class="detail-icon">ℹ️</span><span>세부 정보 없음</span></div>';
+                '<div class="detail-item"><span class="detail-icon">ℹ️</span><span>이상 없음</span></div>';
             }
 
             header.addEventListener("click", () => {

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getBrowser } from './browser';
+import { fetchWithBrowser } from './browser';
 
 const BROWSER_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
@@ -26,25 +26,9 @@ function needsBrowserRendering(html: string): boolean {
   return !hasTitle && !hasBody;
 }
 
-async function fetchWithPlaywright(url: string) {
-  const browser = await getBrowser();
-  const context = await browser.newContext({ userAgent: BROWSER_UA });
-  const page = await context.newPage();
-  try {
-    const response = await page.goto(url, {
-      waitUntil: 'networkidle',
-      timeout: 30000,
-    });
-    const status = response?.status() ?? 0;
-    const html = await page.content();
-    const headers = response?.headers() ?? {};
-    return { status, html, headers, usedPlaywright: true };
-  } finally {
-    await context.close();
-  }
-}
-
 export async function fetchPage(url: string) {
+  let axiosResult = null;
+
   try {
     const response = await axios.get(url, {
       maxRedirects: 5,
@@ -56,15 +40,23 @@ export async function fetchPage(url: string) {
     const status = response.status;
     const html = typeof response.data === 'string' ? response.data : '';
     const headers = response.headers as Record<string, string>;
+    axiosResult = { status, html, headers, usedBrowser: false };
 
-    if (isCloudflareChallenge(status, html, headers) || needsBrowserRendering(html)) {
-      return await fetchWithPlaywright(url);
+    if (!isCloudflareChallenge(status, html, headers) && !needsBrowserRendering(html)) {
+      return axiosResult;
     }
-
-    return { status, html, headers, usedPlaywright: false };
   } catch {
-    return await fetchWithPlaywright(url);
+    // axios failed
   }
+
+  try {
+    const browserResult = await fetchWithBrowser(url);
+    if (browserResult) return browserResult;
+  } catch {
+    // browser fallback failed
+  }
+
+  return axiosResult || { status: null, html: '', headers: {}, usedBrowser: false };
 }
 
 export async function fetchHttpStatus(url: string) {
@@ -81,14 +73,19 @@ export async function fetchHttpStatus(url: string) {
     const body = typeof response.data === 'string' ? response.data : '';
 
     if (isCloudflareChallenge(status, body, headers)) {
-      const result = await fetchWithPlaywright(url);
-      return { status: result.status, headers: result.headers, usedPlaywright: true };
+      try {
+        const result = await fetchWithBrowser(url);
+        if (result) return { status: result.status, headers: result.headers, usedBrowser: true };
+      } catch { /* fallback failed */ }
     }
 
-    return { status, headers, usedPlaywright: false };
+    return { status, headers, usedBrowser: false };
   } catch {
-    const result = await fetchWithPlaywright(url);
-    return { status: result.status, headers: result.headers, usedPlaywright: true };
+    try {
+      const result = await fetchWithBrowser(url);
+      if (result) return { status: result.status, headers: result.headers, usedBrowser: true };
+    } catch { /* fallback failed */ }
+    return { status: null, headers: {}, usedBrowser: false };
   }
 }
 
@@ -110,17 +107,18 @@ export async function fetchRobotsTxt(url: string) {
     const headers = response.headers as Record<string, string>;
 
     if (isCloudflareChallenge(status, body, headers)) {
-      const result = await fetchWithPlaywright(robotsUrl);
-      return { status: result.status, body: result.html, headers: result.headers, usedPlaywright: true };
+      try {
+        const result = await fetchWithBrowser(robotsUrl);
+        if (result) return { status: result.status, body: result.html, headers: result.headers, usedBrowser: true };
+      } catch { /* fallback failed */ }
     }
 
-    return { status, body, headers, usedPlaywright: false };
+    return { status, body, headers, usedBrowser: false };
   } catch {
     try {
-      const result = await fetchWithPlaywright(robotsUrl);
-      return { status: result.status, body: result.html, headers: result.headers, usedPlaywright: true };
-    } catch {
-      return { status: null, body: '', headers: {}, usedPlaywright: false };
-    }
+      const result = await fetchWithBrowser(robotsUrl);
+      if (result) return { status: result.status, body: result.html, headers: result.headers, usedBrowser: true };
+    } catch { /* fallback failed */ }
+    return { status: null, body: '', headers: {}, usedBrowser: false };
   }
 }

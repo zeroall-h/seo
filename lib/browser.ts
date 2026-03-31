@@ -1,36 +1,34 @@
-import { chromium } from 'playwright-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import type { Browser } from 'playwright';
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer-core';
 
-chromium.use(StealthPlugin());
+const BROWSER_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
-let browserInstance: Browser | null = null;
-let launching: Promise<Browser> | null = null;
+export async function fetchWithBrowser(url: string) {
+  const executablePath = await chromium.executablePath();
 
-export async function getBrowser(): Promise<Browser> {
-  if (browserInstance?.isConnected()) return browserInstance;
-  if (launching) return launching;
-
-  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROMIUM_PATH || undefined;
-  launching = chromium.launch({
-    headless: true,
+  const browser = await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
     executablePath,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    headless: chromium.headless,
   });
 
-  browserInstance = await launching;
-  launching = null;
+  try {
+    const page = await browser.newPage();
+    await page.setUserAgent(BROWSER_UA);
 
-  browserInstance.on('disconnected', () => {
-    browserInstance = null;
-  });
+    const response = await page.goto(url, {
+      waitUntil: 'networkidle2',
+      timeout: 25000,
+    });
 
-  return browserInstance;
-}
+    const status = response?.status() ?? 0;
+    const html = await page.content();
+    const headers = response?.headers() ?? {};
 
-export async function closeBrowser(): Promise<void> {
-  if (browserInstance) {
-    await browserInstance.close();
-    browserInstance = null;
+    return { status, html, headers, usedBrowser: true };
+  } finally {
+    await browser.close();
   }
 }

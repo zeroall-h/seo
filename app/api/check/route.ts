@@ -15,6 +15,8 @@ import { checkOgTitle } from '@/src/checkers/ogTitle.js';
 // @ts-expect-error - JS checker modules without type declarations
 import { checkOgDescription } from '@/src/checkers/ogDescription.js';
 
+export const maxDuration = 60;
+
 function normalizeUrl(input: string): string {
   if (/^https?:\/\//i.test(input)) return input;
   return `https://${input}`;
@@ -43,6 +45,8 @@ export async function GET(request: NextRequest) {
     const ogTitle = checkOgTitle(pageData.html);
     const ogDesc = checkOgDescription(pageData.html);
 
+    const headers = { 'Access-Control-Allow-Origin': '*' };
+
     return NextResponse.json({
       url,
       checks: [
@@ -54,11 +58,11 @@ export async function GET(request: NextRequest) {
         { name: 'Open Graph 제목 (og:title)', key: 'ogTitle', ...ogTitle },
         { name: 'Open Graph 설명 (og:description)', key: 'ogDesc', ...ogDesc },
       ],
-    });
+    }, { headers });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Unknown error' },
-      { status: 500 },
+      { status: 500, headers: { 'Access-Control-Allow-Origin': '*' } },
     );
   }
 }

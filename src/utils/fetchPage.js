@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { chromium } from 'playwright-extra';
+import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 
-chromium.use(StealthPlugin());
+puppeteer.use(StealthPlugin());
 
 const BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 const TIMEOUT = 15000;
@@ -17,27 +17,27 @@ function isCloudflareChallenge(status, body, headers = {}) {
   return false;
 }
 
-async function fetchWithPlaywright(url) {
-  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROMIUM_PATH || undefined;
-  const browser = await chromium.launch({
-    headless: true,
+async function fetchWithBrowser(url) {
+  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
+  const browser = await puppeteer.launch({
+    headless: 'new',
     executablePath,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });
   try {
-    const context = await browser.newContext({ userAgent: BROWSER_UA });
-    const page = await context.newPage();
+    const page = await browser.newPage();
+    await page.setUserAgent(BROWSER_UA);
 
     const response = await page.goto(url, {
-      waitUntil: 'networkidle',
+      waitUntil: 'networkidle2',
       timeout: 30000,
     });
 
-    const status = response?.status() ?? 0;
+    const status = response.status();
     const html = await page.content();
-    const headers = response?.headers() ?? {};
+    const headers = response.headers();
 
-    return { status, html, headers, usedPlaywright: true };
+    return { status, html, headers, usedPuppeteer: true };
   } finally {
     await browser.close();
   }
@@ -57,12 +57,12 @@ export async function fetchPage(url) {
     const headers = response.headers;
 
     if (isCloudflareChallenge(status, html, headers)) {
-      return await fetchWithPlaywright(url);
+      return await fetchWithBrowser(url);
     }
 
-    return { status, html, headers, usedPlaywright: false };
+    return { status, html, headers, usedPuppeteer: false };
   } catch {
-    return await fetchWithPlaywright(url);
+    return await fetchWithBrowser(url);
   }
 }
 
@@ -80,14 +80,14 @@ export async function fetchHttpStatus(url) {
     const body = typeof response.data === 'string' ? response.data : '';
 
     if (isCloudflareChallenge(status, body, headers)) {
-      const result = await fetchWithPlaywright(url);
-      return { status: result.status, headers: result.headers, usedPlaywright: true };
+      const result = await fetchWithBrowser(url);
+      return { status: result.status, headers: result.headers, usedPuppeteer: true };
     }
 
-    return { status, headers, usedPlaywright: false };
+    return { status, headers, usedPuppeteer: false };
   } catch {
-    const result = await fetchWithPlaywright(url);
-    return { status: result.status, headers: result.headers, usedPlaywright: true };
+    const result = await fetchWithBrowser(url);
+    return { status: result.status, headers: result.headers, usedPuppeteer: true };
   }
 }
 
@@ -109,17 +109,17 @@ export async function fetchRobotsTxt(url) {
     const headers = response.headers;
 
     if (isCloudflareChallenge(status, body, headers)) {
-      const result = await fetchWithPlaywright(robotsUrl);
-      return { status: result.status, body: result.html, headers: result.headers, usedPlaywright: true };
+      const result = await fetchWithBrowser(robotsUrl);
+      return { status: result.status, body: result.html, headers: result.headers, usedPuppeteer: true };
     }
 
-    return { status, body, headers, usedPlaywright: false };
+    return { status, body, headers, usedPuppeteer: false };
   } catch {
     try {
-      const result = await fetchWithPlaywright(robotsUrl);
-      return { status: result.status, body: result.html, headers: result.headers, usedPlaywright: true };
+      const result = await fetchWithBrowser(robotsUrl);
+      return { status: result.status, body: result.html, headers: result.headers, usedPuppeteer: true };
     } catch {
-      return { status: null, body: '', headers: {}, usedPlaywright: false };
+      return { status: null, body: '', headers: {}, usedPuppeteer: false };
     }
   }
 }

@@ -4,13 +4,11 @@
     {
       "parameters": {
         "httpMethod": "GET",
-        "path": "seo-check",
+        "path": "seo",
         "responseMode": "lastNode",
         "options": {
           "responseHeaders": {
-            "entries": [
-              { "name": "Access-Control-Allow-Origin", "value": "*" }
-            ]
+            "entries": [{ "name": "Access-Control-Allow-Origin", "value": "*" }]
           }
         }
       },
@@ -21,19 +19,12 @@
     },
     {
       "parameters": {
-        "operation": "execute",
         "command": "=cd /opt/seo-checker && node src/cli-json.js '{{ $json.query.url }}' 2>/dev/null"
       },
       "name": "Run SEO Check",
-      "type": "n8n-nodes-base.ssh",
+      "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [420, 300],
-      "credentials": {
-        "sshPassword": {
-          "id": "YOUR_CREDENTIAL_ID",
-          "name": "SSH Password account"
-        }
-      }
+      "position": [420, 300]
     },
     {
       "parameters": {
@@ -54,19 +45,13 @@
   ],
   "connections": {
     "Webhook": {
-      "main": [
-        [{ "node": "Run SEO Check", "type": "main", "index": 0 }]
-      ]
+      "main": [[{ "node": "Run SEO Check", "type": "main", "index": 0 }]]
     },
     "Run SEO Check": {
-      "main": [
-        [{ "node": "Parse Result", "type": "main", "index": 0 }]
-      ]
+      "main": [[{ "node": "Parse Result", "type": "main", "index": 0 }]]
     },
     "Parse Result": {
-      "main": [
-        [{ "node": "Respond to Webhook", "type": "main", "index": 0 }]
-      ]
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
     }
   }
 }

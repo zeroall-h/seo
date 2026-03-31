@@ -307,7 +307,7 @@
 
         try {
           const res = await fetch(
-            `https://dev-n8n.ais.hivelab.co.kr/webhook/seo?url=${encodeURIComponent(url)}`,
+            `https://dev-n8n.ais.hivelab.co.kr/webhook/seo-check?url=${encodeURIComponent(url)}`,
           );
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "서버 오류");

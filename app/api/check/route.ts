@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchPage, fetchHttpStatus, fetchRobotsTxt } from '@/lib/fetchPage';
-// @ts-expect-error - JS checker modules without type declarations
 import { checkHttpStatus } from '@/src/checkers/httpStatus.js';
-// @ts-expect-error - JS checker modules without type declarations
 import { checkRobotsTxt } from '@/src/checkers/robotsTxt.js';
-// @ts-expect-error - JS checker modules without type declarations
 import { checkRobotsMeta } from '@/src/checkers/robotsMeta.js';
-// @ts-expect-error - JS checker modules without type declarations
 import { checkTitleTag } from '@/src/checkers/titleTag.js';
-// @ts-expect-error - JS checker modules without type declarations
 import { checkMetaDescription } from '@/src/checkers/metaDescription.js';
-// @ts-expect-error - JS checker modules without type declarations
 import { checkOgTitle } from '@/src/checkers/ogTitle.js';
-// @ts-expect-error - JS checker modules without type declarations
 import { checkOgDescription } from '@/src/checkers/ogDescription.js';
 
 export const maxDuration = 60;

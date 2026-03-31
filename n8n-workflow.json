@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "command": "=cd /opt/seo-checker && node src/cli-json.js '{{ $json.query.url }}' 2>/dev/null"
+        "command": "=cd /opt/seo-checker && git pull && npm install --omit=dev 2>/dev/null && node src/cli-json.js '{{ $json.query.url }}' 2>/dev/null"
       },
       "name": "Run SEO Check",
       "type": "n8n-nodes-base.executeCommand",

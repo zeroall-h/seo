@@ -18,8 +18,10 @@ function isCloudflareChallenge(status, body, headers = {}) {
 }
 
 async function fetchWithPlaywright(url) {
+  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROMIUM_PATH || undefined;
   const browser = await chromium.launch({
     headless: true,
+    executablePath,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });
   try {

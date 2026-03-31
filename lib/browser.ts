@@ -11,8 +11,10 @@ export async function getBrowser(): Promise<Browser> {
   if (browserInstance?.isConnected()) return browserInstance;
   if (launching) return launching;
 
+  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROMIUM_PATH || undefined;
   launching = chromium.launch({
     headless: true,
+    executablePath,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   });
 

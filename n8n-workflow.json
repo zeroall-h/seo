@@ -4,7 +4,7 @@
     {
       "parameters": {
         "httpMethod": "GET",
-        "path": "seo",
+        "path": "seo-check",
         "responseMode": "lastNode",
         "options": {
           "responseHeaders": {

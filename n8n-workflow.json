@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "command": "=cd /opt/seo-checker && git pull > /dev/null 2>&1 && npm install --omit=dev > /dev/null 2>&1 && node src/cli-json.js '{{ $json.query.url }}' 2>/dev/null"
+        "command": "=cd /opt/seo-checker && git pull > /dev/null 2>&1 && npm install --omit=dev > /dev/null 2>&1 && node src/cli-json.js '{{ $json.query.url }}'"
       },
       "name": "Run SEO Check",
       "type": "n8n-nodes-base.executeCommand",
@@ -28,7 +28,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const raw = $('Run SEO Check').first().json.stdout;\ntry {\n  const result = JSON.parse(raw);\n  return [{ json: result }];\n} catch (e) {\n  return [{ json: { error: 'SEO 검사 실패: ' + (raw || e.message) } }];\n}"
+        "jsCode": "const data = $('Run SEO Check').first().json;\nconst raw = data.stdout;\nconst err = data.stderr;\ntry {\n  const result = JSON.parse(raw);\n  return [{ json: result }];\n} catch (e) {\n  return [{ json: { error: 'SEO 검사 실패', stdout: raw || '', stderr: err || '', parseError: e.message } }];\n}"
       },
       "name": "Parse Result",
       "type": "n8n-nodes-base.code",

@@ -17,6 +17,13 @@ function isCloudflareChallenge(status, body, headers = {}) {
   return false;
 }
 
+function needsBrowserRendering(html) {
+  if (!html || html.trim().length < 200) return true;
+  const hasTitle = /<title[^>]*>.+<\/title>/is.test(html);
+  const hasBody = /<body[^>]*>.{100,}/is.test(html);
+  return !hasTitle && !hasBody;
+}
+
 async function fetchWithBrowser(url) {
   const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
   const browser = await puppeteer.launch({
@@ -56,7 +63,7 @@ export async function fetchPage(url) {
     const html = typeof response.data === 'string' ? response.data : '';
     const headers = response.headers;
 
-    if (isCloudflareChallenge(status, html, headers)) {
+    if (isCloudflareChallenge(status, html, headers) || needsBrowserRendering(html)) {
       return await fetchWithBrowser(url);
     }
 

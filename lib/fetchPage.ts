@@ -19,6 +19,13 @@ function isCloudflareChallenge(
   return false;
 }
 
+function needsBrowserRendering(html: string): boolean {
+  if (!html || html.trim().length < 200) return true;
+  const hasTitle = /<title[^>]*>.+<\/title>/is.test(html);
+  const hasBody = /<body[^>]*>.{100,}/is.test(html);
+  return !hasTitle && !hasBody;
+}
+
 async function fetchWithPlaywright(url: string) {
   const browser = await getBrowser();
   const context = await browser.newContext({ userAgent: BROWSER_UA });
@@ -50,7 +57,7 @@ export async function fetchPage(url: string) {
     const html = typeof response.data === 'string' ? response.data : '';
     const headers = response.headers as Record<string, string>;
 
-    if (isCloudflareChallenge(status, html, headers)) {
+    if (isCloudflareChallenge(status, html, headers) || needsBrowserRendering(html)) {
       return await fetchWithPlaywright(url);
     }
 

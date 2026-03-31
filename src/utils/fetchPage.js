@@ -1,11 +1,34 @@
 import axios from 'axios';
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-
-puppeteer.use(StealthPlugin());
 
 const BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 const TIMEOUT = 15000;
+
+let puppeteerExtra = null;
+let browserAvailable = null;
+
+async function loadPuppeteer() {
+  if (browserAvailable === false) return null;
+  if (puppeteerExtra) return puppeteerExtra;
+  try {
+    const mod = await import('puppeteer-extra');
+    const stealth = await import('puppeteer-extra-plugin-stealth');
+    puppeteerExtra = mod.default;
+    puppeteerExtra.use(stealth.default());
+    // 테스트 실행으로 브라우저 사용 가능 여부 확인
+    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
+    const browser = await puppeteerExtra.launch({
+      headless: 'new',
+      executablePath,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+    await browser.close();
+    browserAvailable = true;
+    return puppeteerExtra;
+  } catch {
+    browserAvailable = false;
+    return null;
+  }
+}
 
 function isCloudflareChallenge(status, body, headers = {}) {
   if (status === 403) {
@@ -25,8 +48,11 @@ function needsBrowserRendering(html) {
 }
 
 async function fetchWithBrowser(url) {
+  const pptr = await loadPuppeteer();
+  if (!pptr) return null;
+
   const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
-  const browser = await puppeteer.launch({
+  const browser = await pptr.launch({
     headless: 'new',
     executablePath,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
@@ -51,6 +77,8 @@ async function fetchWithBrowser(url) {
 }
 
 export async function fetchPage(url) {
+  let axiosResult = null;
+
   try {
     const response = await axios.get(url, {
       maxRedirects: 5,
@@ -62,15 +90,25 @@ export async function fetchPage(url) {
     const status = response.status;
     const html = typeof response.data === 'string' ? response.data : '';
     const headers = response.headers;
+    axiosResult = { status, html, headers, usedPuppeteer: false };
 
-    if (isCloudflareChallenge(status, html, headers) || needsBrowserRendering(html)) {
-      return await fetchWithBrowser(url);
+    if (!isCloudflareChallenge(status, html, headers) && !needsBrowserRendering(html)) {
+      return axiosResult;
     }
-
-    return { status, html, headers, usedPuppeteer: false };
   } catch {
-    return await fetchWithBrowser(url);
+    // axios 실패 시 axiosResult는 null
   }
+
+  // 브라우저 폴백 시도
+  try {
+    const browserResult = await fetchWithBrowser(url);
+    if (browserResult) return browserResult;
+  } catch {
+    // 브라우저도 실패
+  }
+
+  // 브라우저 없으면 axios 결과라도 반환
+  return axiosResult || { status: null, html: '', headers: {}, usedPuppeteer: false };
 }
 
 export async function fetchHttpStatus(url) {
@@ -87,14 +125,19 @@ export async function fetchHttpStatus(url) {
     const body = typeof response.data === 'string' ? response.data : '';
 
     if (isCloudflareChallenge(status, body, headers)) {
-      const result = await fetchWithBrowser(url);
-      return { status: result.status, headers: result.headers, usedPuppeteer: true };
+      try {
+        const result = await fetchWithBrowser(url);
+        if (result) return { status: result.status, headers: result.headers, usedPuppeteer: true };
+      } catch { /* 폴백 실패 */ }
     }
 
     return { status, headers, usedPuppeteer: false };
   } catch {
-    const result = await fetchWithBrowser(url);
-    return { status: result.status, headers: result.headers, usedPuppeteer: true };
+    try {
+      const result = await fetchWithBrowser(url);
+      if (result) return { status: result.status, headers: result.headers, usedPuppeteer: true };
+    } catch { /* 폴백 실패 */ }
+    return { status: null, headers: {}, usedPuppeteer: false };
   }
 }
 
@@ -116,17 +159,18 @@ export async function fetchRobotsTxt(url) {
     const headers = response.headers;
 
     if (isCloudflareChallenge(status, body, headers)) {
-      const result = await fetchWithBrowser(robotsUrl);
-      return { status: result.status, body: result.html, headers: result.headers, usedPuppeteer: true };
+      try {
+        const result = await fetchWithBrowser(robotsUrl);
+        if (result) return { status: result.status, body: result.html, headers: result.headers, usedPuppeteer: true };
+      } catch { /* 폴백 실패 */ }
     }
 
     return { status, body, headers, usedPuppeteer: false };
   } catch {
     try {
       const result = await fetchWithBrowser(robotsUrl);
-      return { status: result.status, body: result.html, headers: result.headers, usedPuppeteer: true };
-    } catch {
-      return { status: null, body: '', headers: {}, usedPuppeteer: false };
-    }
+      if (result) return { status: result.status, body: result.html, headers: result.headers, usedPuppeteer: true };
+    } catch { /* 폴백 실패 */ }
+    return { status: null, body: '', headers: {}, usedPuppeteer: false };
   }
 }

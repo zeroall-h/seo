@@ -32,14 +32,15 @@ async function fetchWithScraperAPI(url: string) {
   // 1순위: ScrapingAnt (월 10,000건 무료)
   if (SCRAPINGANT_API_KEY) {
     try {
-      const apiUrl = `https://api.scrapingant.com/v2/general?url=${encodeURIComponent(url)}&x-api-key=${SCRAPINGANT_API_KEY}&browser=true`;
+      const apiUrl = `https://api.scrapingant.com/v2/general?url=${encodeURIComponent(url)}&browser=true`;
       const response = await axios.get(apiUrl, {
         timeout: 60000,
         validateStatus: () => true,
+        headers: { 'x-api-key': SCRAPINGANT_API_KEY },
       });
       const html = typeof response.data === 'string' ? response.data : '';
-      if (html && html.trim().length > 200) {
-        return { status: response.status, html, headers: response.headers as Record<string, string>, usedScraperAPI: true };
+      if (response.status === 200 && html && !html.startsWith('{') && html.trim().length > 200) {
+        return { status: 200, html, headers: response.headers as Record<string, string>, usedScraperAPI: true };
       }
     } catch { /* ScrapingAnt failed, try next */ }
   }

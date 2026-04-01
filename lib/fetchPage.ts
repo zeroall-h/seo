@@ -5,6 +5,7 @@ const BROWSER_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 const TIMEOUT = 15000;
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || '';
+const SCRAPINGANT_API_KEY = process.env.SCRAPINGANT_API_KEY || '';
 
 function isCloudflareChallenge(
   status: number,
@@ -28,18 +29,33 @@ function needsBrowserRendering(html: string): boolean {
 }
 
 async function fetchWithScraperAPI(url: string) {
-  if (!SCRAPER_API_KEY) return null;
-  const apiUrl = `https://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(url)}&render=true`;
-  const response = await axios.get(apiUrl, {
-    timeout: 60000,
-    validateStatus: () => true,
-  });
+  // 1순위: ScrapingAnt (월 10,000건 무료)
+  if (SCRAPINGANT_API_KEY) {
+    try {
+      const apiUrl = `https://api.scrapingant.com/v2/general?url=${encodeURIComponent(url)}&x-api-key=${SCRAPINGANT_API_KEY}&browser=true`;
+      const response = await axios.get(apiUrl, {
+        timeout: 60000,
+        validateStatus: () => true,
+      });
+      const html = typeof response.data === 'string' ? response.data : '';
+      if (html && html.trim().length > 200) {
+        return { status: response.status, html, headers: response.headers as Record<string, string>, usedScraperAPI: true };
+      }
+    } catch { /* ScrapingAnt failed, try next */ }
+  }
 
-  const status = response.status;
-  const html = typeof response.data === 'string' ? response.data : '';
-  const headers = response.headers as Record<string, string>;
+  // 2순위: ScraperAPI (트라이얼 후 월 1,000건 무료)
+  if (SCRAPER_API_KEY) {
+    const apiUrl = `https://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(url)}&render=true`;
+    const response = await axios.get(apiUrl, {
+      timeout: 60000,
+      validateStatus: () => true,
+    });
+    const html = typeof response.data === 'string' ? response.data : '';
+    return { status: response.status, html, headers: response.headers as Record<string, string>, usedScraperAPI: true };
+  }
 
-  return { status, html, headers, usedScraperAPI: true };
+  return null;
 }
 
 export async function fetchPage(url: string) {

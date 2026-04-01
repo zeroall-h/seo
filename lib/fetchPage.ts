@@ -4,7 +4,7 @@ import { fetchWithBrowser } from './browser';
 const BROWSER_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 const TIMEOUT = 15000;
-const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || '2de799f8c1143e968e2f0ca2b9929745';
+const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || '';
 
 function isCloudflareChallenge(
   status: number,
@@ -28,6 +28,7 @@ function needsBrowserRendering(html: string): boolean {
 }
 
 async function fetchWithScraperAPI(url: string) {
+  if (!SCRAPER_API_KEY) return null;
   const apiUrl = `https://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(url)}&render=true`;
   const response = await axios.get(apiUrl, {
     timeout: 60000,

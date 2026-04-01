@@ -60,7 +60,7 @@ async function fetchWithScraperAPI(url: string) {
 
 export async function fetchPage(url: string) {
   // 1차: axios 직접 요청
-  let axiosResult = null;
+  let axiosResult: { status: number | null; html: string; headers: Record<string, string>; usedScraperAPI: boolean } | null = null;
   try {
     const response = await axios.get(url, {
       maxRedirects: 5,
@@ -84,7 +84,7 @@ export async function fetchPage(url: string) {
   // 2차: ScraperAPI (봇 방어 우회 + 렌더링)
   try {
     const scraperResult = await fetchWithScraperAPI(url);
-    if (scraperResult.html && scraperResult.html.trim().length > 200) {
+    if (scraperResult && scraperResult.html && scraperResult.html.trim().length > 200) {
       return scraperResult;
     }
   } catch {
@@ -99,7 +99,7 @@ export async function fetchPage(url: string) {
     // browser fallback failed
   }
 
-  return axiosResult || { status: null, html: '', headers: {}, usedScraperAPI: false };
+  return axiosResult ?? { status: null, html: '', headers: {} as Record<string, string>, usedScraperAPI: false };
 }
 
 export async function fetchHttpStatus(url: string) {

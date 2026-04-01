@@ -32,11 +32,12 @@ export async function GET(request: NextRequest) {
 
     const http = checkHttpStatus(httpData);
     const robots = checkRobotsTxt(robotsData);
-    const robotsMeta = checkRobotsMeta(pageData.html);
-    const title = checkTitleTag(pageData.html);
-    const desc = checkMetaDescription(pageData.html);
-    const ogTitle = checkOgTitle(pageData.html);
-    const ogDesc = checkOgDescription(pageData.html);
+    const html = pageData?.html ?? '';
+    const robotsMeta = checkRobotsMeta(html);
+    const title = checkTitleTag(html);
+    const desc = checkMetaDescription(html);
+    const ogTitle = checkOgTitle(html);
+    const ogDesc = checkOgDescription(html);
 
     const headers = { 'Access-Control-Allow-Origin': '*' };
 

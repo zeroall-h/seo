@@ -4,6 +4,7 @@ import { fetchWithBrowser } from './browser';
 const BROWSER_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 const TIMEOUT = 15000;
+const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || '2de799f8c1143e968e2f0ca2b9929745';
 
 function isCloudflareChallenge(
   status: number,
@@ -26,9 +27,23 @@ function needsBrowserRendering(html: string): boolean {
   return !hasTitle && !hasBody;
 }
 
-export async function fetchPage(url: string) {
-  let axiosResult = null;
+async function fetchWithScraperAPI(url: string) {
+  const apiUrl = `https://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(url)}&render=true`;
+  const response = await axios.get(apiUrl, {
+    timeout: 60000,
+    validateStatus: () => true,
+  });
 
+  const status = response.status;
+  const html = typeof response.data === 'string' ? response.data : '';
+  const headers = response.headers as Record<string, string>;
+
+  return { status, html, headers, usedScraperAPI: true };
+}
+
+export async function fetchPage(url: string) {
+  // 1차: axios 직접 요청
+  let axiosResult = null;
   try {
     const response = await axios.get(url, {
       maxRedirects: 5,
@@ -40,7 +55,7 @@ export async function fetchPage(url: string) {
     const status = response.status;
     const html = typeof response.data === 'string' ? response.data : '';
     const headers = response.headers as Record<string, string>;
-    axiosResult = { status, html, headers, usedBrowser: false };
+    axiosResult = { status, html, headers, usedScraperAPI: false };
 
     if (!isCloudflareChallenge(status, html, headers) && !needsBrowserRendering(html)) {
       return axiosResult;
@@ -49,6 +64,17 @@ export async function fetchPage(url: string) {
     // axios failed
   }
 
+  // 2차: ScraperAPI (봇 방어 우회 + 렌더링)
+  try {
+    const scraperResult = await fetchWithScraperAPI(url);
+    if (scraperResult.html && scraperResult.html.trim().length > 200) {
+      return scraperResult;
+    }
+  } catch {
+    // ScraperAPI failed
+  }
+
+  // 3차: 브라우저 폴백
   try {
     const browserResult = await fetchWithBrowser(url);
     if (browserResult) return browserResult;
@@ -56,7 +82,7 @@ export async function fetchPage(url: string) {
     // browser fallback failed
   }
 
-  return axiosResult || { status: null, html: '', headers: {}, usedBrowser: false };
+  return axiosResult || { status: null, html: '', headers: {}, usedScraperAPI: false };
 }
 
 export async function fetchHttpStatus(url: string) {
@@ -74,18 +100,18 @@ export async function fetchHttpStatus(url: string) {
 
     if (isCloudflareChallenge(status, body, headers)) {
       try {
-        const result = await fetchWithBrowser(url);
-        if (result) return { status: result.status, headers: result.headers, usedBrowser: true };
+        const result = await fetchWithScraperAPI(url);
+        if (result) return { status: result.status, headers: result.headers, usedScraperAPI: true };
       } catch { /* fallback failed */ }
     }
 
-    return { status, headers, usedBrowser: false };
+    return { status, headers, usedScraperAPI: false };
   } catch {
     try {
-      const result = await fetchWithBrowser(url);
-      if (result) return { status: result.status, headers: result.headers, usedBrowser: true };
+      const result = await fetchWithScraperAPI(url);
+      if (result) return { status: result.status, headers: result.headers, usedScraperAPI: true };
     } catch { /* fallback failed */ }
-    return { status: null, headers: {}, usedBrowser: false };
+    return { status: null, headers: {}, usedScraperAPI: false };
   }
 }
 
@@ -108,17 +134,17 @@ export async function fetchRobotsTxt(url: string) {
 
     if (isCloudflareChallenge(status, body, headers)) {
       try {
-        const result = await fetchWithBrowser(robotsUrl);
-        if (result) return { status: result.status, body: result.html, headers: result.headers, usedBrowser: true };
+        const result = await fetchWithScraperAPI(robotsUrl);
+        if (result) return { status: result.status, body: result.html, headers: result.headers, usedScraperAPI: true };
       } catch { /* fallback failed */ }
     }
 
-    return { status, body, headers, usedBrowser: false };
+    return { status, body, headers, usedScraperAPI: false };
   } catch {
     try {
-      const result = await fetchWithBrowser(robotsUrl);
-      if (result) return { status: result.status, body: result.html, headers: result.headers, usedBrowser: true };
+      const result = await fetchWithScraperAPI(robotsUrl);
+      if (result) return { status: result.status, body: result.html, headers: result.headers, usedScraperAPI: true };
     } catch { /* fallback failed */ }
-    return { status: null, body: '', headers: {}, usedBrowser: false };
+    return { status: null, body: '', headers: {}, usedScraperAPI: false };
   }
 }
